@@ -45,13 +45,16 @@ class MainActivity : AppCompatActivity() {
         targetView = ImageView(this).apply {
             setImageResource(R.drawable.target)
             scaleType = ImageView.ScaleType.CENTER
-            layoutParams = RelativeLayout.LayoutParams(500, 500)
+            layoutParams = RelativeLayout.LayoutParams(500, 500).apply {
+                // Initially position at (0,0) to use translation
+                leftMargin = 0
+                topMargin = 0
+            }
             elevation = 4f
             isEnabled = false
         }
 
         val layout = findViewById<RelativeLayout>(R.id.mainLayout)
-        // Ensure the layout doesn't clip children and is large enough
         layout.clipChildren = false
         layout.clipToPadding = false
         layout.addView(targetView)

@@ -14,7 +14,7 @@ class TargetController(
     private val bitmapHeight: Float
 ) {
     private var oscillationTime = 0f
-    private val targetSize = 500 // Fixed size in pixels, matching MainActivity
+    private val targetSize = 500 // Fixed size in pixels
 
     init {
         targetView.scaleType = ImageView.ScaleType.CENTER
@@ -41,14 +41,17 @@ class TargetController(
         val oscillationAmplitude = 1000f
         val oscillationOffset = sin(oscillationTime) * oscillationAmplitude
 
-        // Apply sensor input with oscillation
-        val targetX = currentX + (bitmapWidth - targetWidth) / 2 + oscillationOffset
-        val targetY = currentY + (bitmapHeight - targetHeight) / 2 + verticalOffset
+        // Base position (center of bitmap)
+        val baseX = (bitmapWidth - targetWidth) / 2
+        val baseY = (bitmapHeight - targetHeight) / 2 + verticalOffset
 
-        val layoutParams = targetView.layoutParams as RelativeLayout.LayoutParams
-        layoutParams.leftMargin = targetX.toInt()
-        layoutParams.topMargin = targetY.toInt()
-        targetView.layoutParams = layoutParams
+        // Apply sensor input and oscillation via translation
+        val targetX = baseX + currentX + oscillationOffset
+        val targetY = baseY + currentY
+
+        // Use translation instead of margins
+        targetView.translationX = targetX
+        targetView.translationY = targetY
 
         checkTargetEnabled()
     }
@@ -57,10 +60,10 @@ class TargetController(
         val screenCenterX = imageView.width / 2
         val screenCenterY = imageView.height / 2
 
-        val targetLeft = targetView.left
-        val targetRight = targetView.right
-        val targetTop = targetView.top
-        val targetBottom = targetView.bottom
+        val targetLeft = targetView.left + targetView.translationX
+        val targetRight = targetLeft + targetView.width
+        val targetTop = targetView.top + targetView.translationY
+        val targetBottom = targetTop + targetView.height
 
         val isCrosshairOverTarget = screenCenterX >= targetLeft &&
                 screenCenterX <= targetRight &&
