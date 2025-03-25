@@ -18,14 +18,16 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
+import kotlin.math.sin
 
 
 class MainActivity : AppCompatActivity() {
     private lateinit var sensorHandler: SensorBackgroundHandler
     private lateinit var imageView: ImageView
     private lateinit var crosshairView: ImageView
-    private lateinit var startGameButton: Button
+    private lateinit var targetView: ImageView
     private lateinit var bitmap: Bitmap
+    private lateinit var targetController: TargetController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,21 +42,23 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        startGameButton = Button(this).apply {
-            text = "Start Game"
-            textSize = 28f
-            setBackgroundColor(android.graphics.Color.parseColor("#00BFFF"))
+        targetView = ImageView(this).apply {
+            setImageResource(R.drawable.target)
+            scaleType = ImageView.ScaleType.CENTER
+            layoutParams = RelativeLayout.LayoutParams(500, 500)
             elevation = 4f
             isEnabled = false
         }
 
         val layout = findViewById<RelativeLayout>(R.id.mainLayout)
-        val buttonParams = RelativeLayout.LayoutParams(400, 160)
-        layout.addView(startGameButton, buttonParams)
+        // Ensure the layout doesn't clip children and is large enough
+        layout.clipChildren = false
+        layout.clipToPadding = false
+        layout.addView(targetView)
         layout.addView(crosshairView)
 
         layout.setOnClickListener {
-            if (startGameButton.isEnabled) {
+            if (targetView.isEnabled) {
                 Log.d("MainActivity", "Screen clicked, starting game")
                 val intent = Intent(this@MainActivity, GameActivity::class.java)
                 startActivity(intent)
@@ -69,8 +73,9 @@ class MainActivity : AppCompatActivity() {
                 return
             }
             imageView.setImageBitmap(bitmap)
+            targetController = TargetController(this, targetView, imageView, bitmap.width.toFloat(), bitmap.height.toFloat())
             sensorHandler = SensorBackgroundHandler(this, imageView, bitmap) { x, y ->
-                updateButtonPosition(x, y) // Update button position on every movement
+                targetController.updateTargetPosition(x, y)
             }
         } catch (e: Exception) {
             Log.e("MainActivity", "Error loading image: ${e.message}")
@@ -79,50 +84,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateButtonPosition(currentX: Float, currentY: Float) {
-        val bitmapWidth = bitmap.width.toFloat()
-        val bitmapHeight = bitmap.height.toFloat()
-        val buttonWidth = startGameButton.width.toFloat()
-        val buttonHeight = startGameButton.height.toFloat()
-
-        val rotation = (windowManager.defaultDisplay.rotation + 0) % 4
-        val verticalOffset = when (rotation) {
-            Surface.ROTATION_90 -> -20f  // Landscape left
-            Surface.ROTATION_270 -> -20f // Landscape right
-            else -> -70f                 // Portrait or upside down
-        }
-
-        val buttonX = currentX + (bitmapWidth - buttonWidth) / 2
-        val buttonY = currentY + (bitmapHeight - buttonHeight) / 2 + verticalOffset
-
-        val layoutParams = startGameButton.layoutParams as RelativeLayout.LayoutParams
-        layoutParams.leftMargin = buttonX.toInt()
-        layoutParams.topMargin = buttonY.toInt()
-        startGameButton.layoutParams = layoutParams
-
-        checkButtonEnabled()
-    }
-
-    private fun checkButtonEnabled() {
-        val screenCenterX = imageView.width / 2
-        val screenCenterY = imageView.height / 2
-
-        val buttonLeft = startGameButton.left
-        val buttonRight = startGameButton.right
-        val buttonTop = startGameButton.top
-        val buttonBottom = startGameButton.bottom
-
-        val isCrosshairOverButton = screenCenterX >= buttonLeft &&
-                screenCenterX <= buttonRight &&
-                screenCenterY >= buttonTop &&
-                screenCenterY <= buttonBottom
-
-        startGameButton.isEnabled = isCrosshairOverButton
-    }
-
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        // The sensor handler will handle orientation changes, callback will update button
     }
 
     override fun onResume() {
