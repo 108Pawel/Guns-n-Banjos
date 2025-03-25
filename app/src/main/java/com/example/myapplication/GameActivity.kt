@@ -9,13 +9,13 @@ import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.postDelayed
-import android.content.res.Configuration
 
 
 class GameActivity : AppCompatActivity() {
     private lateinit var sensorHandler: SensorBackgroundHandler
     private lateinit var gunshotPlayer: MediaPlayer
     private lateinit var reloadPlayer: MediaPlayer
+    private lateinit var hitPlayer: MediaPlayer
     private lateinit var flashView: View
     private lateinit var gunView: ImageView
 
@@ -100,10 +100,19 @@ class GameActivity : AppCompatActivity() {
             true
         }
 
+        hitPlayer = MediaPlayer.create(this, R.raw.hit)
+        hitPlayer.setOnErrorListener { mp, what, extra ->
+            Log.e("GameActivity", "Reload MediaPlayer error: what=$what, extra=$extra")
+            true
+        }
+
         // Set click listener for shooting
         layout.setOnClickListener {
             if (!isReloading) {
                 fireShot()
+            }
+            if (targetView1.isEnabled) {
+                scheduleHit()
             }
         }
 
@@ -137,24 +146,31 @@ class GameActivity : AppCompatActivity() {
 
     private fun animateRecoil() {
         gunView.animate()
-            .translationY(50f)
-            .translationX(20f)
+            .translationY(250f)
+            .translationX(300f)
             .setDuration(20)
             .withEndAction {
                 gunView.animate()
                     .translationY(0f)
                     .translationX(0f)
-                    .setDuration(350)
+                    .setDuration(700)
                     .start()
             }
             .start()
     }
 
     private fun scheduleReload() {
-        val reloadDelay = 700L
+        val reloadDelay = 1000L
         flashView.postDelayed(reloadDelay) {
             playReloadSound()
             isReloading = false
+        }
+    }
+
+    private fun scheduleHit() {
+        val hitDelay = 300L
+        flashView.postDelayed(hitDelay) {
+            playHitSound()
         }
     }
 
@@ -164,6 +180,14 @@ class GameActivity : AppCompatActivity() {
             reloadPlayer.prepare()
         }
         reloadPlayer.start()
+    }
+
+    private fun playHitSound() {
+        if (hitPlayer.isPlaying) {
+            hitPlayer.stop()
+            hitPlayer.prepare()
+        }
+        hitPlayer.start()
     }
 
     override fun onResume() {
@@ -180,11 +204,15 @@ class GameActivity : AppCompatActivity() {
         if (reloadPlayer.isPlaying) {
             reloadPlayer.stop()
         }
+        if (hitPlayer.isPlaying) {
+            hitPlayer.stop()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         gunshotPlayer.release()
         reloadPlayer.release()
+        hitPlayer.release()
     }
 }
