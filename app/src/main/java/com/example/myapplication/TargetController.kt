@@ -71,6 +71,6 @@ class TargetController(
                 screenCenterY <= targetBottom
 
         targetView.isEnabled = isCrosshairOverTarget
-        targetView.alpha = if (isCrosshairOverTarget) 1.0f else 0.8f
+        targetView.alpha = if (isCrosshairOverTarget) 1.0f else 0.7f
     }
 }

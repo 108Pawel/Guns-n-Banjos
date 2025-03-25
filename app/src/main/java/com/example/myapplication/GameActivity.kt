@@ -18,8 +18,10 @@ class GameActivity : AppCompatActivity() {
     private lateinit var reloadPlayer: MediaPlayer
     private lateinit var flashView: View
     private lateinit var gunView: ImageView
-    private var isReloading = false
 
+    private lateinit var targetView1: ImageView
+    private lateinit var targetController1: TargetController
+    private var isReloading = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,7 +42,7 @@ class GameActivity : AppCompatActivity() {
         }
         layout.addView(flashView)
 
-        // Initialize gun image view (basic setup only, no positioning)
+        // Initialize gun image view
         gunView = ImageView(this).apply {
             setImageResource(R.drawable.gun3)
             scaleType = ImageView.ScaleType.CENTER
@@ -48,10 +50,25 @@ class GameActivity : AppCompatActivity() {
                 RelativeLayout.LayoutParams.WRAP_CONTENT,
                 RelativeLayout.LayoutParams.WRAP_CONTENT
             )
+            elevation = 5f
         }
         layout.addView(gunView)
 
-        // Load background image
+        // Initialize first target
+        targetView1 = ImageView(this).apply {
+            setImageResource(R.drawable.target)
+            scaleType = ImageView.ScaleType.CENTER
+            layoutParams = RelativeLayout.LayoutParams(500, 500).apply {
+                leftMargin = 0
+                topMargin = 0
+            }
+            elevation = 4f
+            isEnabled = false
+        }
+        layout.addView(targetView1)
+
+
+        // Load background image and initialize targets
         try {
             val bitmap = BitmapFactory.decodeResource(resources, R.drawable.background)
             if (bitmap == null) {
@@ -60,7 +77,10 @@ class GameActivity : AppCompatActivity() {
                 return
             }
             imageView.setImageBitmap(bitmap)
-            sensorHandler = SensorBackgroundHandler(this, imageView, bitmap)
+            targetController1 = TargetController(this, targetView1, imageView, bitmap.width.toFloat(), bitmap.height.toFloat())
+            sensorHandler = SensorBackgroundHandler(this, imageView, bitmap) { x, y ->
+                targetController1.updateTargetPosition(x, y)
+            }
         } catch (e: Exception) {
             Log.e("GameActivity", "Error loading background image: ${e.message}")
             finish()
@@ -86,6 +106,10 @@ class GameActivity : AppCompatActivity() {
                 fireShot()
             }
         }
+
+        // Ensure layout doesn't clip children
+        layout.clipChildren = false
+        layout.clipToPadding = false
     }
 
     private fun fireShot() {
@@ -112,14 +136,13 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun animateRecoil() {
-        // Simplified recoil animation without positioning dependencies
         gunView.animate()
-            .translationY(50f)  // Move up by a fixed amount
+            .translationY(50f)
             .translationX(20f)
             .setDuration(20)
             .withEndAction {
                 gunView.animate()
-                    .translationY(0f)  // Return to default position
+                    .translationY(0f)
                     .translationX(0f)
                     .setDuration(350)
                     .start()
